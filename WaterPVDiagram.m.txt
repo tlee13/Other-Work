@@ -1,0 +1,119 @@
+function PVDiagram()
+% Plots the PV Diagram of H2O
+ 
+% Vdw Constants, Water's Constants
+R = 83.14; % cm^3 bar mol^-1 K-1
+Tc = 647.1; % K
+Pc = 220.55; %bar
+b = R*Tc/Pc/8; 
+a = 27/64*R^2*Tc^2/Pc;
+Vc = 55.9;
+loglog(1, 1, 'k');
+ 
+% Antoine Equation Constants
+%Constants when T is Between 1 and 100 C
+A1 = 8.07131;
+B1 = 1730.63;
+C1 = 233.426;
+%Constants when T is Between 99 and 374 C
+A2 = 8.14019;
+B2 = 1810.94;
+C2 = 244.485;
+ 
+root1 = 0;
+root2 = 0;
+ 
+%Degree Spacing for the Isotherms that cross the Vapor Liquid Dome
+isothermSpacing = 15;
+ 
+hold on
+%Plots the Vapor Liquid Dome and the Isotherms Inside the Dome
+for T = 273:2:700
+    
+    %Use the first Antoine Equation between 1-100C
+    if(T-273>=0 && T-273<=100)
+        Psat = (10^(A1-B1/((T-273)+C1)))*.001333;
+        root1 = NewtonRaphson(Psat, T, .05)/1000;
+        root2 = NewtonRaphson(Psat, T, 1000)/1000;
+        loglog(root1, Psat, 'k');
+        loglog(root2, Psat, 'k');
+        
+        %Plots the isotherm for certain values of T, depending on the
+        %isotherm Spacing
+        if(round((T-273)/isothermSpacing)==(T-273)/isothermSpacing)
+            V2 = [root1 root2];
+            Psat2 = [Psat Psat];
+            loglog(V2, Psat2, 'r-');
+        
+            V3 = logspace(log10(.001), log10(root1), 50);
+            P = R*T./((V3*1000)-b) - a./(V3*1000).^2;
+            loglog(V3,P,'k');
+            V3 = logspace(log10(root2), log10(200), 50);
+            P = R*T./((V3*1000)-b) - a./(V3*1000).^2;
+            loglog(V3,P,'k');
+        end
+    end
+    
+    %Use the 2nd Antoine Equation between 100-374C
+    if(T-273>100 && T-273<374)
+        Psat = (10^(A2-B2/((T-273)+C2)))*.001333;
+        root1 = NewtonRaphson(Psat, T, .05)/1000;
+        root2 = NewtonRaphson(Psat, T, 610)/1000;
+        loglog(root1, Psat, 'k');
+        loglog(root2, Psat, 'k');
+        
+        %Plots the isotherm for certain values of T, depending on the
+        %isotherm Spacing
+        if(round((T-273)/isothermSpacing)==(T-273)/isothermSpacing)
+            V2 = [root1 root2];
+            Psat2 = [Psat Psat];
+            loglog(V2, Psat2, 'r-');
+        
+            V3 = logspace(log10(.001), log10(root1), 50);
+            P = R*T./((V3*1000)-b) - a./(V3*1000).^2;
+            loglog(V3,P,'k');
+            V3 = logspace(log10(root2), log10(200), 50);
+            P = R*T./((V3*1000)-b) - a./(V3*1000).^2;
+            loglog(V3,P,'k');
+        end
+    end
+end
+ 
+%Plots the isotherms for T > Tc
+V = logspace(log10(.01), log10(200), 200); %L/mol
+for T = round(Tc):100:2000
+    P = R*T./((V*1000)-b) - a./(V*1000).^2;
+    loglog(V,P,'k');
+end
+ 
+%Properly Sets the Axis and Labels them
+axis([.03 200 .1 1000]);
+xlabel('V (L/mol)');                        
+ylabel('P (bar)');   
+ 
+hold off
+end
+
+function v = NewtonRaphson (Psat, T, guess)
+% Newton Raphson Method, V is the final volume that was converged to
+% f(V) = RT/(V-b) -a/V^2 - Psat
+% f'(V) = -RT(V-b)^(-2) + 2aV^(-3)
+ 
+%VanDer Waals Constants
+R = 83.14; % cm^3 bar mol^-1 K-1
+Tc = 647.1;
+Pc = 220.55;
+b = R*Tc/Pc/8;
+a = 27/64*R^2*Tc^2/Pc;
+ 
+%Number of Iterations
+iterations = 17;
+c = zeros (iterations, 1);
+c(1, 1) = guess;
+ 
+for counter = 1:1:iterations
+    c(counter+1, 1) = c(counter, 1) - (R*T/(c(counter,1)-b)-a/c(counter,1)^2 - Psat)/(-R*T*c (counter,1)^(-2) + 2*a*c(counter,1)^(-3));
+end
+v = c(iterations, 1);
+return
+
